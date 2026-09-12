@@ -1,0 +1,557 @@
+﻿<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator V/C Rasio Kendaraan Perkotaan & Pedesaan</title>
+    <!-- Tailwind CSS for modern UI design -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.js">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        @media print {
+            body { background: white; color: black; }
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            shadow, .shadow-md, .shadow-lg, .shadow-xl { box-shadow: none !important; }
+        }
+        .print-only { display: none; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <header class="bg-indigo-700 text-white shadow-md sticky top-0 z-50 no-print">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-600 p-2 rounded-xl border border-indigo-500 shadow-inner">
+                    <i class="fa-solid fa-road text-2xl text-amber-300"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">Traffic V/C Rasio Analyzer</h1>
+                    <p class="text-xs text-indigo-200">Kalkulator Volume/Kapasitas Jalan Perkotaan & Pedesaan per Jam</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="switchTab('input')" id="btnTabInput" class="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-800 text-white transition shadow-sm hover:bg-indigo-900">
+                    <i class="fa-solid fa-calculator mr-2"></i> Input & Hitung
+                </button>
+                <button onclick="switchTab('report')" id="btnTabReport" class="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-indigo-100 transition hover:bg-indigo-800">
+                    <i class="fa-solid fa-file-lines mr-2"></i> Dokumen Hasil
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6">
+
+        <!-- TAB 1: INPUT & KALKULASI -->
+        <div id="tabInput" class="space-y-6">
+            <!-- Parameter Pengaturan Jalan -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                <h2 class="text-lg font-bold text-slate-900 mb-4 flex items-center">
+                    <i class="fa-solid fa-sliders text-indigo-600 mr-2"></i> Parameter Karakteristik Jalan
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Kawasan / Wilayah</label>
+                        <select id="regionType" onchange="calculateResults()" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <option value="perkotaan">Perkotaan (Urban)</option>
+                            <option value="pedesaan">Pedesaan (Rural)</option>
+                        </select>
+                        <p class="text-xs text-slate-500 mt-1">Menentukan nilai ekivalen mobil penumpang (EMP) dasar.</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Tipe Jalan (Satu Arah)</label>
+                        <select id="roadType" onchange="calculateResults()" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <option value="2/2UD">2 Lajur 2 Arah Tak Terbagi (2/2 UD) - Kapasitas ~2900 smp/jam</option>
+                            <option value="4/2D">4 Lajur 2 Arah Terbagi (4/2 D) - Kapasitas ~6500 smp/jam</option>
+                            <option value="1/1">1 Lajur 1 Arah (Jalan Lokal/Kecil) - Kapasitas ~1500 smp/jam</option>
+                        </select>
+                        <p class="text-xs text-slate-500 mt-1">Kapasitas dasar estimasi per ruas jalan.</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Nama / Ruas Jalan</label>
+                        <input type="text" id="roadName" value="Jl. Contoh Raya No. 1" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <p class="text-xs text-slate-500 mt-1">Digunakan untuk kop dokumen laporan.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabel Input Per Jam -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 flex items-center">
+                            <i class="fa-solid fa-clock text-indigo-600 mr-2"></i> Input Volume Kendaraan Per Jam (Satuan Kendaraan / Jam)
+                        </h2>
+                        <p class="text-xs text-slate-500">Masukkan jumlah kendaraan yang melintas untuk setiap kategori pada jam pengamatan tertentu.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="addRow()" class="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3.5 py-2 rounded-xl text-sm font-semibold transition border border-indigo-200">
+                            <i class="fa-solid fa-plus mr-1"></i> Tambah Jam
+                        </button>
+                        <button onclick="resetData()" class="bg-slate-100 text-slate-600 hover:bg-slate-200 px-3.5 py-2 rounded-xl text-sm font-semibold transition">
+                            <i class="fa-solid fa-rotate-right mr-1"></i> Reset
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-700 uppercase text-xs tracking-wider border-b border-slate-200">
+                                <th class="p-3 font-semibold text-center w-16">No</th>
+                                <th class="p-3 font-semibold">Waktu / Jam Pengamatan</th>
+                                <th class="p-3 font-semibold text-center">Motor (MC)</th>
+                                <th class="p-3 font-semibold text-center">Sedan / LV</th>
+                                <th class="p-3 font-semibold text-center">Truk 2 Sumbu (HV)</th>
+                                <th class="p-3 font-semibold text-center">Truk 3 Sumbu (LB)</th>
+                                <th class="p-3 font-semibold text-center">Sepeda (UM)</th>
+                                <th class="p-3 font-semibold text-center">Pejalan Kaki / Tidak Berkendara</th>
+                                <th class="p-3 font-semibold text-center w-16">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hourlyTableBody" class="divide-y divide-slate-100 text-sm">
+                            <!-- Baris input akan di-generate via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Kartu Hasil Ringkasan Cepat -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                    <span class="text-xs font-semibold text-slate-500 uppercase">Volume Puncak (Peak Volume)</span>
+                    <div class="flex items-baseline mt-2">
+                        <span id="summaryPeakVol" class="text-2xl font-bold text-slate-900">0</span>
+                        <span class="ml-1 text-xs text-slate-500">smp/jam</span>
+                    </div>
+                    <span id="summaryPeakTime" class="text-xs text-indigo-600 mt-2 font-medium">Jam: -</span>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                    <span class="text-xs font-semibold text-slate-500 uppercase">V/C Rasio Maksimum</span>
+                    <div class="flex items-baseline mt-2">
+                        <span id="summaryMaxVC" class="text-2xl font-bold text-slate-900">0.00</span>
+                    </div>
+                    <span id="summaryLOS" class="text-xs font-semibold mt-2 px-2 py-0.5 rounded-full inline-block w-fit">Level of Service: -</span>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                    <span class="text-xs font-semibold text-slate-500 uppercase">Kapasitas Dasar Jalan (C)</span>
+                    <div class="flex items-baseline mt-2">
+                        <span id="summaryCapacity" class="text-2xl font-bold text-slate-900">2900</span>
+                        <span class="ml-1 text-xs text-slate-500">smp/jam</span>
+                    </div>
+                    <span class="text-xs text-slate-500 mt-2">Berdasarkan tipe jalan</span>
+                </div>
+                <div class="bg-indigo-900 text-white p-5 rounded-2xl shadow-sm flex flex-col justify-between">
+                    <span class="text-xs font-semibold text-indigo-300 uppercase">Status Arus Lalu Lintas</span>
+                    <div class="mt-2">
+                        <span id="summaryStatusText" class="text-lg font-bold">Normal / Lancar</span>
+                    </div>
+                    <button onclick="switchTab('report')" class="mt-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs py-1.5 px-3 rounded-lg font-medium transition text-center shadow-sm">
+                        Lihat Dokumen Hasil <i class="fa-solid fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: DOKUMEN HASIL PERHITUNGAN -->
+        <div id="tabReport" class="hidden space-y-6">
+            <div class="flex justify-between items-center no-print bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <div>
+                    <h3 class="font-bold text-slate-800">Pratinjau Dokumen Hasil Analisis</h3>
+                    <p class="text-xs text-slate-500">Laporan komprehensif siap cetak atau ekspor ke PDF.</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition shadow-sm flex items-center">
+                        <i class="fa-solid fa-print mr-2"></i> Cetak / Simpan PDF
+                    </button>
+                    <button onclick="switchTab('input')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-semibold transition">
+                        Kembali Edit
+                    </button>
+                </div>
+            </div>
+
+            <!-- KERTAS DOKUMEN LAPORAN -->
+            <div class="bg-white p-8 md:p-12 rounded-2xl shadow-md border border-slate-200 max-w-4xl mx-auto space-y-8">
+                <!-- Header Dokumen -->
+                <div class="border-b-2 border-slate-900 pb-6 text-center space-y-2">
+                    <span class="text-xs uppercase tracking-widest font-bold text-indigo-600">Laporan Resmi Analisis Lalu Lintas</span>
+                    <h2 class="text-2xl font-black text-slate-900 uppercase">Evaluasi Volume Kendaraan & V/C Rasio</h2>
+                    <p class="text-sm text-slate-600" id="reportRoadTitle">Ruas Jalan: Jl. Contoh Raya No. 1</p>
+                    <div class="flex justify-center space-x-6 text-xs text-slate-500 pt-2">
+                        <span>Kawasan: <strong id="reportRegion" class="text-slate-700 uppercase">Perkotaan</strong></span>
+                        <span>Tipe Jalan: <strong id="reportRoadType" class="text-slate-700">2/2 UD</strong></span>
+                        <span>Tanggal Cetak: <strong id="reportDate" class="text-slate-700">-</strong></span>
+                    </div>
+                </div>
+
+                <!-- Bagian 1: Ringkasan Parameter & Standar EMP -->
+                <div class="space-y-3">
+                    <h4 class="font-bold text-slate-900 border-l-4 border-indigo-600 pl-3 text-sm uppercase">1. Parameter & Koefisien Ekivalen Mobil Penumpang (EMP)</h4>
+                    <p class="text-xs text-slate-600 leading-relaxed">
+                        Analisis V/C (Volume to Capacity) Rasio dihitung berdasarkan konversi jumlah kendaraan aktual per jam menjadi Satuan Mobil Penumpang (smp/jam) menggunakan standar MKJI, dengan kapasitas dasar ruas jalan disesuaikan dengan jenis kawasan (perkotaan/pedesaan).
+                    </p>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+                            <span class="text-xs text-slate-500 block">EMP Motor</span>
+                            <strong id="empMotorVal" class="text-base text-slate-800">0.25</strong>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+                            <span class="text-xs text-slate-500 block">EMP Sedan/LV</span>
+                            <strong class="text-base text-slate-800">1.00</strong>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+                            <span class="text-xs text-slate-500 block">EMP Truk 2 Sumbu</span>
+                            <strong id="empTruk2Val" class="text-base text-slate-800">1.20</strong>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+                            <span class="text-xs text-slate-500 block">EMP Truk 3 Sumbu</span>
+                            <strong id="empTruk3Val" class="text-base text-slate-800">1.50</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bagian 2: Tabel Perhitungan Detail Per Jam -->
+                <div class="space-y-3">
+                    <h4 class="font-bold text-slate-900 border-l-4 border-indigo-600 pl-3 text-sm uppercase">2. Rekapitulasi Perhitungan Per Jam</h4>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-700 uppercase border-b border-slate-300">
+                                    <th class="p-2.5 font-semibold text-center">Jam</th>
+                                    <th class="p-2.5 font-semibold text-center">Motor</th>
+                                    <th class="p-2.5 font-semibold text-center">Sedan</th>
+                                    <th class="p-2.5 font-semibold text-center">Truk 2S</th>
+                                    <th class="p-2.5 font-semibold text-center">Truk 3S</th>
+                                    <th class="p-2.5 font-semibold text-center">Sepeda</th>
+                                    <th class="p-2.5 font-semibold text-center">Tidak Berkendara</th>
+                                    <th class="p-2.5 font-semibold text-center bg-indigo-50 text-indigo-900">Total (smp/jam)</th>
+                                    <th class="p-2.5 font-semibold text-center bg-indigo-100 text-indigo-900">V/C Rasio</th>
+                                    <th class="p-2.5 font-semibold text-center">LOS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportTableBody" class="divide-y divide-slate-200">
+                                <!-- Data diisi via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Bagian 3: Analisis & Kesimpulan -->
+                <div class="space-y-3 pt-2">
+                    <h4 class="font-bold text-slate-900 border-l-4 border-indigo-600 pl-3 text-sm uppercase">3. Kesimpulan & Evaluasi Kinerja Jalan</h4>
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs space-y-2 text-slate-700">
+                        <p id="reportConclusionSummary">
+                            Berdasarkan hasil pengamatan arus lalu lintas per jam, V/C Rasio tertinggi tercatat pada jam pampasan dengan tingkat pelayanan jalan.
+                        </p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-200">
+                            <div>
+                                <span class="font-semibold block text-slate-900">Kategori Tingkat Pelayanan (LOS):</span>
+                                <ul class="list-disc list-inside space-y-1 mt-1 text-slate-600">
+                                    <li><strong>A / B / C (V/C ≤ 0.75):</strong> Arus stabil, hambatan rendah.</li>
+                                    <li><strong>D / E (0.75 < V/C ≤ 1.00):</strong> Mendekati kapasitas penuh, kecepatan mulai melambat.</li>
+                                    <li><strong>F (V/C > 1.00):</strong> Kemacetan parah, antrean panjang.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <span class="font-semibold block text-slate-900">Rekomendasi Penanganan:</span>
+                                <p id="reportRecommendationText" class="mt-1 text-slate-600">
+                                    Pertahankan manajemen lalu lintas saat ini.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tanda Tangan Dokumen -->
+                <div class="pt-8 grid grid-cols-2 gap-8 text-center text-xs">
+                    <div>
+                        <p class="text-slate-500">Dibuat Oleh / Surveyor</p>
+                        <div class="h-16"></div>
+                        <p class="font-bold border-b border-slate-400 pb-1 inline-block px-8">( ........................ )</p>
+                    </div>
+                    <div>
+                        <p class="text-slate-500">Mengetahui / Penanggung Jawab</p>
+                        <div class="h-16"></div>
+                        <p class="font-bold border-b border-slate-400 pb-1 inline-block px-8">( Muh. Ihsan Nur, SE)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-12 py-4 text-center text-xs text-slate-500 no-print">
+        <p>Aplikasi Kalkulator Volume & V/C Rasio Kendaraan Perkotaan & Pedesaan &bull; Berstandar Analisis Kapasitas Jalan</p>
+    </footer>
+
+    <script>
+        // Data awal baris jam pengamatan (contoh 6 jam pengamatan)
+        let hourlyData = [
+            { time: "07:00 - 08:00", motor: 450, sedan: 120, truk2s: 15, truk3s: 5, sepeda: 25, nonveh: 10 },
+            { time: "08:00 - 09:00", motor: 300, sedan: 90, truk2s: 20, truk3s: 8, sepeda: 15, nonveh: 5 },
+            { time: "12:00 - 13:00", motor: 250, sedan: 85, truk2s: 25, truk3s: 10, sepeda: 20, nonveh: 8 },
+            { time: "16:00 - 17:00", motor: 400, sedan: 110, truk2s: 18, truk3s: 6, sepeda: 30, nonveh: 12 },
+            { time: "17:00 - 18:00", motor: 520, sedan: 140, truk2s: 22, truk3s: 9, sepeda: 35, nonveh: 15 }
+        ];
+
+        // Fungsi berpindah antar tab
+        function switchTab(tabName) {
+            const tabInput = document.getElementById('tabInput');
+            const tabReport = document.getElementById('tabReport');
+            const btnTabInput = document.getElementById('btnTabInput');
+            const btnTabReport = document.getElementById('btnTabReport');
+
+            if (tabName === 'input') {
+                tabInput.classList.remove('hidden');
+                tabReport.classList.add('hidden');
+                btnTabInput.className = "px-4 py-2 rounded-lg text-sm font-medium bg-indigo-800 text-white transition shadow-sm hover:bg-indigo-900";
+                btnTabReport.className = "px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-indigo-100 transition hover:bg-indigo-800";
+            } else {
+                tabInput.classList.add('hidden');
+                tabReport.classList.remove('hidden');
+                btnTabReport.className = "px-4 py-2 rounded-lg text-sm font-medium bg-indigo-800 text-white transition shadow-sm hover:bg-indigo-900";
+                btnTabInput.className = "px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-indigo-100 transition hover:bg-indigo-800";
+                generateReportContent();
+            }
+        }
+
+        // Render tabel input di UI
+        function renderTable() {
+            const tbody = document.getElementById('hourlyTableBody');
+            tbody.innerHTML = '';
+
+            hourlyData.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
+                tr.innerHTML = `
+                    <td class="p-3 text-center text-slate-500 font-medium">${index + 1}</td>
+                    <td class="p-3">
+                        <input type="text" value="${row.time}" onchange="updateData(${index}, 'time', this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-1.5 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                    </td>
+                    <td class="p-3 text-center">
+                        <input type="number" min="0" value="${row.motor}" onchange="updateData(${index}, 'motor', this.value)" class="w-20 text-center bg-slate-50 border border-slate-300 rounded-lg p-1.5 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                    </td>
+                    <td class="p-3 text-center">
+                        <input type="number" min="0" value="${row.sedan}" onchange="updateData(${index}, 'sedan', this.value)" class="w-20 text-center bg-slate-50 border border-slate-300 rounded-lg p-1.5 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                    </td>
+                    <td class="p-3 text-center">
+                        <input type="number" min="0" value="${row.truk2s}" onchange="updateData(${index}, 'truk2s', this.value)" class="w-20 text-center bg-slate-50 border border-slate-300 rounded-lg p-1.5 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                    </td>
+                    <td class="p-3 text-center">
+                        <input type="number" min="0" value="${row.truk3s}" onchange="updateData(${index}, 'truk3s', this.value)" class="w-20 text-center bg-slate-50 border border-slate-300 rounded-lg p-1.5 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                    </td>
+                    <td class="p-3 text-center">
+                        <input type="number" min="0" value="${row.sepeda}" onchange="updateData(${index}, 'sepeda', this.value)" class="w-20 text-center bg-slate-50 border border-slate-300 rounded-lg p-1.5 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                    </td>
+                    <td class="p-3 text-center">
+                        <input type="number" min="0" value="${row.nonveh}" onchange="updateData(${index}, 'nonveh', this.value)" class="w-20 text-center bg-slate-50 border border-slate-300 rounded-lg p-1.5 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                    </td>
+                    <td class="p-3 text-center">
+                        <button onclick="deleteRow(${index})" class="text-rose-500 hover:text-rose-700 p-1.5 rounded-lg transition hover:bg-rose-50" title="Hapus Baris">
+                            <i class="fa-solid fa-trash-can text-sm"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            calculateResults();
+        }
+
+        // Update nilai data saat input diubah
+        function updateData(index, field, value) {
+            if (field === 'time') {
+                hourlyData[index][field] = value;
+            } else {
+                hourlyData[index][field] = Math.max(0, parseFloat(value) || 0);
+            }
+            calculateResults();
+        }
+
+        // Tambah baris baru
+        function addRow() {
+            const nextHourNum = hourlyData.length + 7;
+            const timeStr = `${String(nextHourNum).padStart(2, '0')}:00 - ${String(nextHourNum+1).padStart(2, '0')}:00`;
+            hourlyData.push({ time: timeStr, motor: 100, sedan: 50, truk2s: 10, truk3s: 2, sepeda: 10, nonveh: 2 });
+            renderTable();
+        }
+
+        // Hapus baris
+        function deleteRow(index) {
+            if (hourlyData.length <= 1) {
+                alert("Minimal harus ada satu data jam pengamatan.");
+                return;
+            }
+            hourlyData.splice(index, 1);
+            renderTable();
+        }
+
+        // Reset data ke default
+        function resetData() {
+            if(confirm("Reset seluruh data pengisian ke awal?")) {
+                hourlyData = [
+                    { time: "07:00 - 08:00", motor: 450, sedan: 120, truk2s: 15, truk3s: 5, sepeda: 25, nonveh: 10 }
+                ];
+                renderTable();
+            }
+        }
+
+        // Hitung V/C Rasio dan kapasitas berdasarkan standar kawasan & tipe jalan
+        function calculateResults() {
+            const region = document.getElementById('regionType').value;
+            const roadType = document.getElementById('roadType').value;
+
+            // EMP (Ekivalen Mobil Penumpang) berdasarkan perkotaan/pedesaan
+            // Perkotaan: Motor=0.25, Sedan=1.0, Truk2S=1.2, Truk3S=1.5, Sepeda=0.2
+            // Pedesaan: Motor cenderung lebih dominan atau sedikit berbeda sesuai karakteristik lokal
+            let empMotor = region === 'perkotaan' ? 0.25 : 0.20;
+            let empTruk2 = region === 'perkotaan' ? 1.20 : 1.30;
+            let empTruk3 = region === 'perkotaan' ? 1.50 : 1.60;
+            let empSepeda = 0.20;
+            let empNonVeh = 0.00; // Tidak berkendara (pejalan kaki/non-kendaraan tidak masuk hitungan V/C langsung, tapi dicatat)
+
+            // Kapasitas Dasar (C)
+            let capacity = 2900;
+            if (roadType === '4/2D') capacity = 6500;
+            if (roadType === '1/1') capacity = 1500;
+
+            let maxVC = 0;
+            let peakVol = 0;
+            let peakTime = "-";
+
+            hourlyData.forEach(row => {
+                let smp = (row.motor * empMotor) + 
+                          (row.sedan * 1.0) + 
+                          (row.truk2s * empTruk2) + 
+                          (row.truk3s * empTruk3) + 
+                          (row.sepeda * empSepeda);
+                
+                let vc = smp / capacity;
+                row.calculatedSmp = Math.round(smp);
+                row.calculatedVc = vc;
+
+                if (smp > peakVol) {
+                    peakVol = Math.round(smp);
+                    peakTime = row.time;
+                }
+                if (vc > maxVC) {
+                    maxVC = vc;
+                }
+            });
+
+            // Update UI Ringkasan Cepat
+            document.getElementById('summaryPeakVol').innerText = peakVol.toLocaleString();
+            document.getElementById('summaryPeakTime').innerText = `Jam Puncak: ${peakTime}`;
+            document.getElementById('summaryMaxVC').innerText = maxVC.toFixed(2);
+            document.getElementById('summaryCapacity').innerText = capacity.toLocaleString();
+
+            const losBadge = document.getElementById('summaryLOS');
+            const statusText = document.getElementById('summaryStatusText');
+            
+            let los = 'A';
+            let status = 'Sangat Lancar';
+            let statusBg = 'bg-emerald-100 text-emerald-800';
+
+            if (maxVC > 0.85) {
+                los = 'E';
+                status = 'Mendekati / Terjadi Kemacetan';
+                statusBg = 'bg-rose-100 text-rose-800';
+            } else if (maxVC > 0.70) {
+                los = 'D';
+                status = 'Arus Mulai Tidak Stabil';
+                statusBg = 'bg-amber-100 text-amber-800';
+            } else if (maxVC > 0.45) {
+                los = 'C';
+                status = 'Arus Stabil';
+                statusBg = 'bg-blue-100 text-blue-800';
+            } else if (maxVC > 0.20) {
+                los = 'B';
+                status = 'Arus Stabil / Lancar';
+                statusBg = 'bg-emerald-100 text-emerald-800';
+            }
+
+            losBadge.innerText = `Level of Service (LOS): ${los}`;
+            losBadge.className = `text-xs font-semibold mt-2 px-2.5 py-1 rounded-full inline-block ${statusBg}`;
+            statusText.innerText = status;
+        }
+
+        // Generator Konten Dokumen Hasil Laporan
+        function generateReportContent() {
+            const region = document.getElementById('regionType').value;
+            const roadType = document.getElementById('roadType').value;
+            const roadName = document.getElementById('roadName').value;
+
+            document.getElementById('reportRoadTitle').innerText = `Ruas Jalan: ${roadName}`;
+            document.getElementById('reportRegion').innerText = region;
+            document.getElementById('reportRoadType').innerText = roadType;
+            document.getElementById('reportDate').innerText = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+
+            let empMotor = region === 'perkotaan' ? 0.25 : 0.20;
+            let empTruk2 = region === 'perkotaan' ? 1.20 : 1.30;
+            let empTruk3 = region === 'perkotaan' ? 1.50 : 1.60;
+
+            document.getElementById('empMotorVal').innerText = empMotor;
+            document.getElementById('empTruk2Val').innerText = empTruk2;
+            document.getElementById('empTruk3Val').innerText = empTruk3;
+
+            let tbody = document.getElementById('reportTableBody');
+            tbody.innerHTML = '';
+
+            let maxVCVal = 0;
+            let peakHourStr = '';
+
+            hourlyData.forEach(row => {
+                let vc = row.calculatedVc || 0;
+                if (vc > maxVCVal) {
+                    maxVCVal = vc;
+                    peakHourStr = row.time;
+                }
+
+                // Tentukan LOS per baris
+                let rowLos = 'A';
+                let badgeColor = 'bg-emerald-100 text-emerald-800';
+                if (vc > 0.85) { rowLos = 'E/F'; badgeColor = 'bg-rose-100 text-rose-800'; }
+                else if (vc > 0.70) { rowLos = 'D'; badgeColor = 'bg-amber-100 text-amber-800'; }
+                else if (vc > 0.45) { rowLos = 'C'; badgeColor = 'bg-blue-100 text-blue-800'; }
+                else if (vc > 0.20) { rowLos = 'B'; badgeColor = 'bg-emerald-100 text-emerald-800'; }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-2.5 font-medium text-center">${row.time}</td>
+                    <td class="p-2.5 text-center">${row.motor}</td>
+                    <td class="p-2.5 text-center">${row.sedan}</td>
+                    <td class="p-2.5 text-center">${row.truk2s}</td>
+                    <td class="p-2.5 text-center">${row.truk3s}</td>
+                    <td class="p-2.5 text-center">${row.sepeda}</td>
+                    <td class="p-2.5 text-center">${row.nonveh}</td>
+                    <td class="p-2.5 text-center font-bold bg-indigo-50 text-indigo-900">${row.calculatedSmp} smp</td>
+                    <td class="p-2.5 text-center font-bold bg-indigo-100 text-indigo-900">${vc.toFixed(2)}</td>
+                    <td class="p-2.5 text-center"><span class="px-2 py-0.5 rounded font-bold ${badgeColor}">${rowLos}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Update teks kesimpulan di laporan
+            let recText = "Kinerja ruas jalan masih dalam kondisi sangat baik dan memenuhi standar kenyamanan berkendara.";
+            if (maxVCVal > 0.85) {
+                recText = "V/C Rasio pada jam puncak telah melewati ambang batas aman (>0.85). Diperlukan manajemen rekayasa lalu lintas atau pelebaran ruas jalan segera.";
+            } else if (maxVCVal > 0.70) {
+                recText = "Volume kendaraan mulai mendekati kapasitas jenuh pada jam-jam sibuk. Perlu pengawasan hambatan samping (parkir liar, aktivitas pasar).";
+            }
+
+            document.getElementById('reportConclusionSummary').innerText = `V/C Rasio maksimum tertinggi tercatat pada jam pengamatan ${peakHourStr} dengan nilai sebesar ${maxVCVal.toFixed(2)}. ${recText}`;
+            document.getElementById('reportRecommendationText').innerText = recText;
+        }
+
+        // Inisialisasi saat halaman dimuat
+        window.onload = function() {
+            renderTable();
+        };
+    </script>
+</body>
+</html>
